@@ -1,101 +1,140 @@
+"use client";
+import { format, parse } from "date-fns";
 import Image from "next/image";
+import { useState } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
+import "./CalendarStyles.css";
 
-export default function Home() {
+// this typing is coming from React-Calendar which is causing me issues with typescript
+type ValuePiece = Date | null;
+type Value = ValuePiece | [ValuePiece, ValuePiece];
+
+const Home = () => {
+  const today = new Date();
+  // const tomorrow = addDays(today, 1);
+
+  // attempted to to an array of dates for the Calendar input but was having trouble with styling, for now i just left it as one day selected
+  const [date, setDate] = useState<Value>(today);
+  const [time, setTime] = useState<string>("");
+  // I assume that provider & service will be passed in as a prop from a previous, for not I just set it
+  const provider = "Ash Brown";
+  const service = "Laser";
+
+  console.log("value", date);
+  console.log("time", time);
+
+  const onChange = (nextValue: Value) => {
+    setDate(nextValue);
+  };
+
+  const makeAppointment = async () => {
+    const data = {
+      provider,
+      service,
+      dateTime: parse(time, "h:mm a", today),
+    };
+    console.log("body", JSON.stringify(data));
+
+    // i didn't have time to work on the backend, but this would be the function to make a call to the backend
+    const response = await fetch("/appointment", {
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    const resp = await response.json();
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="w-[500px] border-4 flex flex-col space-y-5">
+      <div
+        id="header"
+        className="bg-purple-50 flex justify-center items-center h-100 py-6"
+      >
+        <div className="w-100">
+          <Image
+            src="/static/rewaxationlogo.jpeg"
+            width={300}
+            height={500}
+            alt="Header Image"
+          />
+        </div>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+      <main id="calendar" className="px-5 flex flex-col space-y-5">
+        <p className="font-bold">Select a Time </p>
+        <div className="px-5 flex flex-col justify-center items-center w-full">
+          <div id="calendar-input">
+            <Calendar
+              defaultValue={date}
+              onChange={onChange}
+              tileClassName={({ date, view }) => {
+                if (Array.isArray(date)) {
+                  return date?.some(
+                    (d) => d?.toDateString() === date.toDateString()
+                  )
+                    ? "highlight"
+                    : null;
+                }
+                if (view === "month") {
+                  if (date.getDay() === 0 || date.getDay() === 6) {
+                    return "weekend-no-hilight";
+                  }
+                }
+              }}
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+          </div>
+        </div>
+
+        <div id="provider" className="flex flex-row items-center">
+          <p className="font-bold mr-4"> Selected Provider </p>
+          <div className="flex flex-row items-center space-x-1">
+            <img
+              src="https://www.gravatar.com/avatar/2c7d99fe281ecd3bcd65ab915bac6dd5?s=250"
+              alt="Avatar"
+              className="h-8 w-8 rounded-full"
+            />
+            <p>{provider}</p>
+          </div>
+        </div>
+
+        <div className="flex flex-col space-y-2">
+          {/* TODO fix the date, to reflect chosen, because the ValuePiece typing, its causing issues */}
+          <p>{format(today, "PPPP")}</p>
+          <div className="flex-row space-x-4">
+            {/* // TODO: change the color when button is actively selected */}
+            <button
+              className="outline outline-gray-200 hover:bg-purple-200 hover:outline-purple-200 py-2 px-4 rounded"
+              value="4:30pm"
+              onClick={(e) => setTime(e.currentTarget.value)}
+            >
+              4:30pm
+            </button>
+            <button
+              className="outline outline-gray-200 hover:bg-purple-200 hover:outline-purple-200 py-2 px-4 rounded"
+              value="5:30pm"
+              onClick={(e) => setTime(e.currentTarget.value)}
+            >
+              5:30pm
+            </button>
+          </div>
         </div>
       </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      <footer className="w-full flex justify-end p-5">
+        <button
+          disabled={time == ""}
+          className="bg-gray-100 enabled:hover:bg-blue-500 py-2 px-4 rounded"
+          onClick={makeAppointment}
         >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          Next
+        </button>
       </footer>
     </div>
   );
-}
+};
+
+export default Home;
